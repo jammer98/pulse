@@ -1,0 +1,11 @@
+import { useState } from 'react';
+import { request } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { ErrorMessage, Field, PageHeader } from '../components/Layout';
+
+export default function DemoPage() {
+  const { token, user } = useAuth(); const [form, setForm] = useState({ type: 'general', title: '', body: '', data: '{}', apiKey: '' }); const [error, setError] = useState(''); const [result, setResult] = useState(null); const [loading, setLoading] = useState(false);
+  const update = (event) => setForm({ ...form, [event.target.name]: event.target.value });
+  const submit = async (event) => { event.preventDefault(); setError(''); setResult(null); let data; try { data = JSON.parse(form.data); } catch { setError('Data must be valid JSON.'); return; } setLoading(true); try { const response = await request('/api/events', { method: 'POST', headers: { 'X-API-Key': form.apiKey }, body: { userId: user.id, type: form.type, title: form.title, body: form.body, data } }); setResult(response); } catch (err) { setError(err.message); } finally { setLoading(false); } };
+  return <><PageHeader eyebrow="Developer tools" title="Send a test event" /><div className="notice"><strong>Demo only</strong> — in a real system, only backend services would call this endpoint with a server-side key, never a browser.</div><form className="form-card" onSubmit={submit}><div className="form-grid"><Field label="Type" name="type" value={form.type} onChange={update} pattern="[a-z0-9_.-]+" required /><Field label="API key" name="apiKey" value={form.apiKey} onChange={update} required type="password" /></div><Field label="Title" name="title" value={form.title} onChange={update} required /><label className="field"><span>Body</span><textarea name="body" value={form.body} onChange={update} required rows="4" /></label><label className="field"><span>Data (JSON)</span><textarea name="data" value={form.data} onChange={update} rows="5" /></label><ErrorMessage message={error} /><button className="primary-button" disabled={loading}>{loading ? 'Sending…' : 'Send event'}</button></form>{result && <div className="result-card"><strong>Event queued</strong><pre>{JSON.stringify(result, null, 2)}</pre><p>Check the inbox — it should appear within a second.</p></div>}</>;
+}
